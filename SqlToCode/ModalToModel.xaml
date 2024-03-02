@@ -1,0 +1,25 @@
+﻿<Window x:Class="SqlToCode.ModalToModel"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SqlToCode"
+        mc:Ignorable="d"
+        Title="ModalToModel" Height="600" Width="600" ResizeMode="NoResize">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40*"/>
+            <RowDefinition Height="560*"/>
+        </Grid.RowDefinitions>
+        <TextBlock HorizontalAlignment="Left" Margin="14,8,0,0" TextWrapping="Wrap" VerticalAlignment="Top">
+                <Span FontWeight="Bold">Result</Span>
+        </TextBlock>
+        <TextBox ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 ScrollViewer.CanContentScroll="True"
+                 VerticalAlignment="Top" HorizontalAlignment="Center" Grid.Row="1" TextWrapping="Wrap"
+                 IsReadOnly="True"
+                 PreviewKeyDown="OnKeyDownModalToModel" Loaded="OnLoadModalToModel"
+                 Width="580" Height="520"
+                 Name="TextBox_ModalToModel"/>
+    </Grid>
+</Window>
