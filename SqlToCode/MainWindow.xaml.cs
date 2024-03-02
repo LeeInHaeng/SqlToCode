@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualBasic;
+using SqlToCode.Templates;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -603,9 +604,6 @@ namespace SqlToCode
                 //// 공통
                 commonClassName = sqlBlockData._spName.Replace("usp", "", StringComparison.OrdinalIgnoreCase);
 
-                result = $"public class {commonClassName}Data\n";
-                result += "{\n";
-
                 foreach (SpSelectColumnInfo column in selectData._columnList)
                 {
                     resultProperty = string.Empty;
@@ -636,12 +634,10 @@ namespace SqlToCode
                             duplicatedProperty.Add(propertyName);
                         }
 
-                        resultProperty += " { get; set; }\n";
+                        resultProperty += " { get; set; }\r\n";
                         result += resultProperty;
                     }
                 }
-
-                result += "}";
             }
             catch (Exception exception)
             {
@@ -657,8 +653,13 @@ namespace SqlToCode
             string result = string.Empty;
 
             string commonClassName = string.Empty;
+
             string paramClass = string.Empty;
+            string paramListClass = string.Empty;
+
             string resultClass = string.Empty;
+            string resultListClass = string.Empty;
+
             string dataClass = string.Empty;
 
             try
@@ -667,8 +668,9 @@ namespace SqlToCode
                 commonClassName = sqlBlockData._spName.Replace("usp", "", StringComparison.OrdinalIgnoreCase);
 
                 // 파라미터 class 셋팅
-                paramClass = $"public class {commonClassName}Param";
-                paramClass += "\n{\n";
+                paramClass = MakeClassTemplate.ParamTemplate();
+                paramClass = paramClass.Replace("[REPLACE:SPNAME]", commonClassName);
+
                 foreach (ProcedureData procedureData in sqlBlockData._spParamList)
                 {
                     if (true == procedureData._isOutput)
@@ -676,14 +678,14 @@ namespace SqlToCode
                         continue;
                     }
 
-                    paramClass += $"    public {GetDbTypeToCSharp(procedureData._parameterType)}{procedureData._parameterName.Replace("@", "_")}" + " { get; set; }\n";
+                    paramListClass += $"    public {GetDbTypeToCSharp(procedureData._parameterType)}{procedureData._parameterName.Replace("@", "_")}" + " { get; set; }\r\n";
                 }
-                paramClass += "}";
+
+                paramClass = paramClass.Replace("[REPLACE:PARAMLIST]", paramListClass).Replace("\r\n\r\n}", "\r\n}");
 
                 // 결과 class 셋팅
-                resultClass = $"public class {commonClassName}Result";
-                resultClass += "\n{\n";
-                resultClass += "    public int       _resultCode { get; set; }\n";
+                resultClass = MakeClassTemplate.ResultTemplate(sqlBlockData._expectedSpType);
+                resultClass = resultClass.Replace("[REPLACE:SPNAME]", commonClassName);
                 foreach (ProcedureData procedureData in sqlBlockData._spParamList)
                 {
                     if (true == procedureData._parameterName.Equals("@resultcode", StringComparison.InvariantCultureIgnoreCase))
@@ -696,8 +698,10 @@ namespace SqlToCode
                         continue;
                     }
 
-                    resultClass += $"    public {GetDbTypeToCSharp(procedureData._parameterType)}{procedureData._parameterName.Replace("@", "_")}" + " { get; set; }\n";
+                    resultListClass += $"    public {GetDbTypeToCSharp(procedureData._parameterType)}{procedureData._parameterName.Replace("@", "_")}" + " { get; set; }\r\n";
                 }
+
+                resultClass = resultClass.Replace("[REPLACE:RESULTLIST]", resultListClass).Replace("\r\n\r\n}", "\r\n}");
 
                 // select 절일 경우 더 추가적으로 필요
                 // 조회하는 컬럼은 orgName 으로 추출 필요하고, 만들어야 하는 결과는 alias --> alias 없으면 orgName
@@ -709,31 +713,11 @@ namespace SqlToCode
                 }
                 else if (true == "select".Equals(sqlBlockData._expectedSpType) && 1 == sqlBlockData._selectDataList.Count)
                 {
-                    resultClass += $"    public List<{commonClassName}Data> _list" + " { get; set; }\n\n";
-                    resultClass += $"    public {commonClassName}Result()\n";
-                    resultClass += "    {\n";
-                    resultClass += $"        _list = new List<{commonClassName}Data>();\n";
-                    resultClass += "    }\n";
-                }
-
-                resultClass += "}";
-
-                result = $"{paramClass}\n\n{resultClass}";
-
-                // grid reader 일 경우 추가 고려 필요
-                if (true == "select".Equals(sqlBlockData._expectedSpType) && 1 < sqlBlockData._selectDataList.Count)
-                {
-
-                }
-                else if (true == "select".Equals(sqlBlockData._expectedSpType) && 1 == sqlBlockData._selectDataList.Count)
-                {
                     dataClass = MakeDataClass(sqlBlockData, sqlBlockData._selectDataList[0]);
+                    resultClass = resultClass.Replace("[REPLACE:DATALIST]", dataClass).Replace("\r\n\r\n}", "\r\n}");
                 }
 
-                if (true == "select".Equals(sqlBlockData._expectedSpType))
-                {
-                    result += $"\n\n{dataClass}";
-                }
+                result = $"{paramClass}\n{resultClass}";
             }
             catch (Exception exception) 
             {
