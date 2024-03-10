@@ -233,7 +233,7 @@ namespace SqlToCode
                             continue;
                         }
 
-                        if (true == isParamExtractStart && (")".Equals(contents) || ");".Equals(contents)))
+                        if (true == isParamExtractStart && (")".Equals(contents) || ");".Equals(contents) || ")'".Equals(contents)))
                         {
                             loadTable._tableInfo.Add(tmpTblName, columnList);
 
@@ -248,13 +248,34 @@ namespace SqlToCode
                             TableColumnInfo columnInfo = new TableColumnInfo();
                             columnInfo._columnName = contents.Substring(0, contents.IndexOf(" "));
                             contents = contents.Replace(columnInfo._columnName, "").Trim();
-                            columnInfo._columnType = contents.Substring(0, contents.IndexOf(" ")).ToLower();
+                            if (-1 < contents.IndexOf(" "))
+                            {
+                                columnInfo._columnType = contents.Substring(0, contents.IndexOf(" ")).ToLower();
+                            }
+                            else
+                            {
+                                columnInfo._columnType = contents.Substring(0, contents.Length).ToLower();
+                            }
                             columnList.Add(columnInfo);
                         }
 
                         if (true == contents.Contains("CREATE TABLE", StringComparison.OrdinalIgnoreCase))
                         {
                             tmpTblName = contents.Replace("CREATE TABLE", "", StringComparison.OrdinalIgnoreCase).Trim();
+                            if (true == loadTable._tableInfo.ContainsKey(tmpTblName))
+                            {
+                                continue;
+                            }
+
+                            isParamExtractStart = true;
+                            columnList = new List<TableColumnInfo>();
+                        }
+
+                        if (true == contents.Contains("CREATE TYPE", StringComparison.OrdinalIgnoreCase)
+                            && true == contents.Contains("AS TABLE", StringComparison.OrdinalIgnoreCase))
+                        {
+                            tmpTblName = contents.Replace("CREATE TYPE", "", StringComparison.OrdinalIgnoreCase).Trim();
+                            tmpTblName = tmpTblName.Replace("AS TABLE", "", StringComparison.OrdinalIgnoreCase).Trim();
                             if (true == loadTable._tableInfo.ContainsKey(tmpTblName))
                             {
                                 continue;
@@ -732,16 +753,28 @@ namespace SqlToCode
         {
             string result = string.Empty;
 
+            string templateResult = string.Empty;
             string commonClassName = string.Empty;
 
             try
             {
-                //// 공통
-                commonClassName = sqlBlockData._spName.Replace("usp", "", StringComparison.OrdinalIgnoreCase);
+                if (true == sqlBlockData._expectedSpType.Equals("select") && 1 == sqlBlockData._selectDataList.Count)
+                {
+                    templateResult = MakeRepositoryTemplate.RepositorySelectTemplate();
+                }
+                else if (true == sqlBlockData._expectedSpType.Equals("select") && 1 < sqlBlockData._selectDataList.Count)
+                {
 
-                result += $"public {commonClassName}Result {commonClassName} ({commonClassName}Param model)";
-                result += "{";
-                result += $"    {commonClassName}Result result = new {commonClassName}Result();";
+                }
+                else
+                {
+                    templateResult = MakeRepositoryTemplate.RepositoryCUDTemplate();
+                }
+
+                result = templateResult;
+                //// 공통
+                //commonClassName = sqlBlockData._spName.Replace("usp", "", StringComparison.OrdinalIgnoreCase);
+
             }
             catch (Exception exception)
             {
